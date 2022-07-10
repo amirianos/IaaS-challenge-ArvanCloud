@@ -1,0 +1,81 @@
+---
+
+- name: inatall package 
+  apt:
+    pkg: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+    - docker.io
+    - python3
+    - sshpass
+  become: true
+
+- name: download most recent version of CEPHADM
+  shell: curl --silent --remote-name --location https://github.com/ceph/ceph/raw/pacific/src/cephadm/cephadm
+  become: true
+
+- name: make cephadm file executable
+  file:
+    path: ./cephadm
+    state: file
+    mode: 0755
+  become: true
+
+- name: install the packages that provide the cephadm command
+  shell: ./cephadm add-repo --release pacific
+  become: true
+
+- name: install the packages that provide the cephadm command
+  shell: ./cephadm install
+  become: true
+
+- name: install ceph-common package
+  apt:
+    pkg: ceph-common
+    state: latest
+    update_cache: yes
+  become: true
+
+- name: init the ceph cluster
+  shell: cephadm bootstrap --mon-ip "{{ ceph_master_ip }}"
+  become: true
+
+
+- name: ssh copy id to workers
+  shell: "sshpass -p '{{ servers_root_password }}' ssh-copy-id -f -i /etc/ceph/ceph.pub StrictHostKeyChecking=no root@'{{ item }}'"
+  with_items:
+    - storage1
+    - storage2
+  become: true
+
+- name: add hosts to cluster
+  shell: "ceph orch host add '{{ item }}' '{{ item }}'"
+  with_items:
+    - storage1
+    - storage2
+  become: true
+
+
+- name: add all devices to OSDs
+  shell: ceph orch apply osd --all-available-devices
+  become: true
+
+- name: Pause for 15 minutes for recognize all osd devices
+  pause:
+    minutes: 15
+
+- name: apply and add MON nodes
+  shell: "ceph orch apply mon --placement=''{{ item }}''"
+  with_items:
+    - storage1
+    - storage2
+  become: true
+
+- name: apply and add MON nodes
+  shell: "ceph orch apply mgr --placement=''{{ item }}''"
+  with_items:
+    - storage1
+    - storage2
+  become: true
+
