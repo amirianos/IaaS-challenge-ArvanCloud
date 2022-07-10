@@ -1,0 +1,12 @@
+---
+
+- name: install docker on ceph nodes
+  apt:
+    pkg: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+    - docker.io
+  become: true
+
+

@@ -1,0 +1,3 @@
+---
+servers_root_password: root-password
+ceph_master_ip: ceph-master-ip
