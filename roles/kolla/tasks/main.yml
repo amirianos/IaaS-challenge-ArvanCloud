@@ -6,76 +6,118 @@
     state: latest
     update_cache: yes
   with_items:
-    - docker.io
-    - python3
-    - sshpass
+    - python3-dev
+    - libffi-dev
+    - gcc 
+    - libssl-dev
+    - python3-venv
   become: true
 
-- name: download most recent version of CEPHADM
-  shell: curl --silent --remote-name --location https://github.com/ceph/ceph/raw/pacific/src/cephadm/cephadm
+- name: create virtual env for install python packages
+  shell: python3 -m venv /path/to/venv
   become: true
 
-- name: make cephadm file executable
+- name: activate and use prepared virtual env 
+  shell: source /path/to/venv/bin/activate
+  become: true
+
+- name: Ensure the latest version of pip is installed
+  shell: pip install -U pip
+  become: true
+
+- name: install pip on virtual env
+  shell: pip install 'ansible>=4,<6'
+  become: true
+
+- name: install kolla-ansible 
+  shell: pip install git+https://opendev.org/openstack/kolla-ansible@master
+  become: true
+
+- name: Creates /etc/kolla directory
   file:
-    path: ./cephadm
-    state: file
-    mode: 0755
+    path: /etc/kolla
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: 0775
   become: true
 
-- name: install the packages that provide the cephadm command
-  shell: ./cephadm add-repo --release pacific
-  become: true
-
-- name: install the packages that provide the cephadm command
-  shell: ./cephadm install
-  become: true
-
-- name: install ceph-common package
-  apt:
-    pkg: ceph-common
-    state: latest
-    update_cache: yes
-  become: true
-
-- name: init the ceph cluster
-  shell: cephadm bootstrap --mon-ip "{{ ceph_master_ip }}"
+- name: Creates /etc/ansible/ directory
+  file:
+    path: /etc/ansible/
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: 0775
   become: true
 
 
-- name: ssh copy id to workers
-  shell: "sshpass -p '{{ servers_root_password }}' ssh-copy-id -f -i /etc/ceph/ceph.pub StrictHostKeyChecking=no root@'{{ item }}'"
-  with_items:
-    - storage1
-    - storage2
+- name: copy global and password file to /etc/kolla
+  copy:
+    src: /path/to/venv/share/kolla-ansible/etc_examples/kolla
+    dest: /etc/kolla
+    directory_mode:
+    remote_src: yes
   become: true
 
-- name: add hosts to cluster
-  shell: "ceph orch host add '{{ item }}' '{{ item }}'"
-  with_items:
-    - storage1
-    - storage2
+- name: copy multinode file to current directory 
+  copy:
+    src: /path/to/venv/share/kolla-ansible/ansible/inventory/
+    dest: ./
+    directory_mode:
+    remote_src: yes
   become: true
 
+- name: Copy global.yml.j2 as gloabal.yml file
+  template:
+    src: global.yml.j2
+    dest: ./global.yml.sec
+    owner: root
+    mode: "0400"
 
-- name: add all devices to OSDs
-  shell: ceph orch apply osd --all-available-devices
+- name: Copy multinode.j2 as multinode file
+  template:
+    src: multinode.j2
+    dest: ./multinode.sec
+    owner: root
+    mode: "0400"
+
+- name: update content of multinode file
+  shell: cat ./multinode.sec > ./multinode
   become: true
 
-- name: Pause for 15 minutes for recognize all osd devices
-  pause:
-    minutes: 15
-
-- name: apply and add MON nodes
-  shell: "ceph orch apply mon --placement=''{{ item }}''"
-  with_items:
-    - storage1
-    - storage2
+- name: update content of global file
+  shell: cat ./global.yml.sec > /etc/kolla/globals.yml
   become: true
 
-- name: apply and add MON nodes
-  shell: "ceph orch apply mgr --placement=''{{ item }}''"
-  with_items:
-    - storage1
-    - storage2
+- name: install ansible glalaxy dependencies
+  shell: kolla-ansible install-deps
   become: true
+
+- name: Creating ansible.cfg file with initial config
+  copy:
+    dest: /etc/ansible/ansible.cfg
+    content: |
+      [defaults]
+      host_key_checking=False
+      pipelining=True
+      forks=100
+  become: true
+
+- name: generate passwords
+  shell: kolla-genpwd
+  become: true
+
+- name: bootstrap servers with kolla deploy dependencies
+  shell: kolla-ansible -i ./multinode bootstrap-servers
+  become: true
+
+- name: pre-deployment checks
+  shell: kolla-ansible -i ./multinode prechecks
+  become: true
+
+- name: actual deploy step
+  shell: kolla-ansible -i ./multinode deploy
+  become: true
+
 

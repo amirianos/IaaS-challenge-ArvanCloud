@@ -1,13 +1,20 @@
 ---
 - hosts: all
+  user: root
+  become: yes
   gather_facts: yes
   tasks:
-    - name: ceph cluster
+    - name: ceph cluster common
       include_role:
         name: ceph-common
     when: inventory_hostname in groups['cephworker']
     
-    - name: ceph cluster
+    - name: ceph cluster implementation
       include_role:
         name: ceph
       when: inventory_hostname in groups['cephmaster']
+
+    - name: kolla ansible 
+      include_role:
+        name: kolla
+      when: inventory_hostname in groups['kollamaster']

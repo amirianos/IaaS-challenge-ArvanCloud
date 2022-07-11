@@ -2,3 +2,5 @@
 <ceph_server_ip> ansible_user=<user>  ansible_ssh_private_key_file=<ssh_key_file_addr>
 [cephworker]
 <cephworker_server_ip> ansible_user=<user>  ansible_ssh_private_key_file=<ssh_key_file_addr>
+[kollamaster]
+<kollamaster_server_ip> ansible_user=<user>  ansible_ssh_private_key_file=<ssh_key_file_addr>
