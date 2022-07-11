@@ -22,7 +22,7 @@
     mode: 0755
   become: true
 
-- name: install the packages that provide the cephadm command
+- name: add CEPHADM repository
   shell: ./cephadm add-repo --release pacific
   become: true
 
@@ -43,39 +43,73 @@
 
 
 - name: ssh copy id to workers
-  shell: "sshpass -p '{{ servers_root_password }}' ssh-copy-id -f -i /etc/ceph/ceph.pub StrictHostKeyChecking=no root@'{{ item }}'"
+  shell: "sshpass -p {{ servers_root_password }} ssh-copy-id -f -i /etc/ceph/ceph.pub  root@{{ item }}"
   with_items:
-    - storage1
-    - storage2
+    - storage1_ip
+    - storage2_ip
+    - storage3_ip
   become: true
 
 - name: add hosts to cluster
-  shell: "ceph orch host add '{{ item }}' '{{ item }}'"
+  shell: "ceph orch host add {{ item }}"
   with_items:
-    - storage1
-    - storage2
-  become: true
-
-
-- name: add all devices to OSDs
-  shell: ceph orch apply osd --all-available-devices
+    - storage2_with_ip
+    _ storage3_with_ip
   become: true
 
 - name: Pause for 15 minutes for recognize all osd devices
   pause:
     minutes: 15
 
-- name: apply and add MON nodes
-  shell: "ceph orch apply mon --placement=''{{ item }}''"
-  with_items:
-    - storage1
-    - storage2
+- name: add all devices to OSDs
+  shell: ceph orch apply osd --all-available-devices
   become: true
 
 - name: apply and add MON nodes
-  shell: "ceph orch apply mgr --placement=''{{ item }}''"
+  shell: "ceph orch apply mon --placement='{{ item }}'"
   with_items:
     - storage1
     - storage2
+    - storage3
   become: true
+
+- name: apply and add MON nodes
+  shell: "ceph orch apply mgr --placement='{{ item }}'"
+  with_items:
+    - storage1
+    - storage2
+    - storage3
+  become: true
+
+- name: create pools 
+  shell: "ceph osd pool create{{ item }}"
+  with_items:
+    - volumes
+    - images
+    - backups
+    - vms
+  become: true
+
+- name: set pools to rbd 
+  shell: "rbd pool init{{ item }}"
+  with_items:
+    - volumes
+    - images
+    - backups
+    - vms
+  become: true
+
+- name: create keyrings
+  shell: "ceph auth get-or-create {{}}"
+  with_items:
+    -  client.glance mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=images' -o /etc/ceph/ceph.client.glance.keyring
+    - client.cinder mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=images' -o /etc/ceph/ceph.client.cinder.keyring
+    - client.nova mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=vms, allow rx pool=images' -o /etc/ceph/ceph.client.nova.keyring
+    - client.cinder-backup mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=backups' -o /etc/ceph/ceph.client.cinder-backup.keyring 
+  become: true
+
+- name: copy ceph config files to openstack cluster
+  shell: "scp -r /etc/ceph root@{{ openstack_server_ip }}:/etc/"
+  become: true
+
 
