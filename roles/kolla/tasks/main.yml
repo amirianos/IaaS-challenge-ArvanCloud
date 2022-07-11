@@ -108,6 +108,35 @@
   shell: kolla-genpwd
   become: true
 
+
+- name: move ceph cluster config files to the right place
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+  become: true
+  with_items:
+    - /etc/kolla/config
+    - /etc/kolla/config/nova
+    - /etc/kolla/config/glance
+    - /etc/kolla/config/cinder
+    - /etc/kolla/config/cinder/cinder-volume
+    - /etc/kolla/config/cinder/cinder-backup
+
+- name: move ceph cluster config files to the right place
+  shell: "{{ item }}"
+  with_item:
+    - cp /etc/ceph/ceph.conf /etc/kolla/config/cinder/
+    - cp /etc/ceph/ceph.conf /etc/kolla/config/nova/
+    - cp /etc/ceph/ceph.conf /etc/kolla/config/glance/# cp /etc/ceph/ceph.client.glance.keyring /etc/kolla/config/glance/
+    - cp /etc/ceph/ceph.client.nova.keyring /etc/kolla/config/nova/
+    - cp /etc/ceph/ceph.client.cinder.keyring /etc/kolla/config/nova/
+    - cp /etc/ceph/ceph.client.cinder.keyring /etc/kolla/config/cinder/cinder-volume/
+    - cp /etc/ceph/ceph.client.cinder.keyring /etc/kolla/config/cinder/cinder-backup/
+    - cp /etc/ceph/ceph.client.cinder-backup.keyring /etc/kolla/config/cinder/cinder-backup/
+
 - name: bootstrap servers with kolla deploy dependencies
   shell: kolla-ansible -i ./multinode bootstrap-servers
   become: true
