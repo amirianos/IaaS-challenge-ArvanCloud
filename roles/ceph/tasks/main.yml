@@ -82,7 +82,7 @@
   become: true
 
 - name: create pools 
-  shell: "ceph osd pool create{{ item }}"
+  shell: "ceph osd pool create {{ item }}"
   with_items:
     - volumes
     - images
