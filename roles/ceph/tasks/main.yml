@@ -91,7 +91,7 @@
   become: true
 
 - name: set pools to rbd 
-  shell: "rbd pool init{{ item }}"
+  shell: "rbd pool init {{ item }}"
   with_items:
     - volumes
     - images

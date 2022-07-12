@@ -1,4 +1,7 @@
 [cephmaster]
 <ceph_server_ip> ansible_user=root
+[cephworker]
+<ceph_workerserver_ip> ansible_user=root
+<ceph_workerserver_ip> ansible_user=root
 [kollamaster]
 <kollamaster_server_ip> ansible_user=root

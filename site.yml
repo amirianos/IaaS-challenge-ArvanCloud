@@ -7,7 +7,7 @@
     - name: ceph cluster common
       include_role:
         name: ceph-common
-    when: inventory_hostname in groups['cephworker']
+      when: inventory_hostname in groups['cephworker']
     
     - name: ceph cluster implementation
       include_role:
