@@ -109,7 +109,7 @@
   become: true
 
 
-- name: move ceph cluster config files to the right place
+- name: Create storage directories in /etc/kolla subdirectory
   file:
     path: "{{ item }}"
     state: directory

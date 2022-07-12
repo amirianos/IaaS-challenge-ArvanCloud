@@ -1,4 +1,6 @@
 ---
 servers_root_password: root-password
 ceph_master_ip: ceph-master-ip
+storage2_with_ip:  storage2 <ip storage2>
+storage3_with_ip:  storage3 <ip storage3>
 openstack_server_ip: openstack main server ip

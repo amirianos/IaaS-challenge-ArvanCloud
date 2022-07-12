@@ -45,16 +45,16 @@
 - name: ssh copy id to workers
   shell: "sshpass -p {{ servers_root_password }} ssh-copy-id -f -i /etc/ceph/ceph.pub  root@{{ item }}"
   with_items:
-    - storage1_ip
-    - storage2_ip
-    - storage3_ip
+    - storage1
+    - storage2
+    - storage3
   become: true
 
 - name: add hosts to cluster
   shell: "ceph orch host add {{ item }}"
   with_items:
-    - storage2_with_ip
-    _ storage3_with_ip
+    - "{{ storage2_with_ip }}"
+    - "{{ storage3_with_ip }}"
   become: true
 
 - name: Pause for 15 minutes for recognize all osd devices
