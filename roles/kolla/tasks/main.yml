@@ -17,20 +17,16 @@
   shell: python3 -m venv /path/to/venv
   become: true
 
-- name: activate and use prepared virtual env 
-  shell: source /path/to/venv/bin/activate
-  become: true
-
 - name: Ensure the latest version of pip is installed
-  shell: pip install -U pip
+  shell: . /path/to/venv/bin/activate && pip install -U pip
   become: true
 
 - name: install pip on virtual env
-  shell: pip install 'ansible>=4,<6'
+  shell: . /path/to/venv/bin/activate && pip install 'ansible>=4,<6'
   become: true
 
 - name: install kolla-ansible 
-  shell: pip install git+https://opendev.org/openstack/kolla-ansible@master
+  shell: . /path/to/venv/bin/activate && pip install git+https://opendev.org/openstack/kolla-ansible@master
   become: true
 
 - name: Creates /etc/kolla directory
@@ -54,8 +50,8 @@
 
 - name: copy global and password file to /etc/kolla
   copy:
-    src: /path/to/venv/share/kolla-ansible/etc_examples/kolla
-    dest: /etc/kolla
+    src: /path/to/venv/share/kolla-ansible/etc_examples/kolla/
+    dest: /etc/kolla/
     directory_mode:
     remote_src: yes
   become: true
@@ -70,8 +66,8 @@
 
 - name: Copy global.yml.j2 as gloabal.yml file
   template:
-    src: global.yml.j2
-    dest: ./global.yml.sec
+    src: globals.yml.j2
+    dest: ./globals.yml.sec
     owner: root
     mode: "0400"
 
@@ -87,11 +83,11 @@
   become: true
 
 - name: update content of global file
-  shell: cat ./global.yml.sec > /etc/kolla/globals.yml
+  shell: cat ./globals.yml.sec > /etc/kolla/globals.yml
   become: true
 
 - name: install ansible glalaxy dependencies
-  shell: kolla-ansible install-deps
+  shell: . /path/to/venv/bin/activate && kolla-ansible install-deps
   become: true
 
 - name: Creating ansible.cfg file with initial config
@@ -105,7 +101,7 @@
   become: true
 
 - name: generate passwords
-  shell: kolla-genpwd
+  shell: . /path/to/venv/bin/activate && kolla-genpwd
   become: true
 
 
@@ -127,10 +123,11 @@
 
 - name: move ceph cluster config files to the right place
   shell: "{{ item }}"
-  with_item:
+  with_items:
     - cp /etc/ceph/ceph.conf /etc/kolla/config/cinder/
     - cp /etc/ceph/ceph.conf /etc/kolla/config/nova/
-    - cp /etc/ceph/ceph.conf /etc/kolla/config/glance/# cp /etc/ceph/ceph.client.glance.keyring /etc/kolla/config/glance/
+    - cp /etc/ceph/ceph.conf /etc/kolla/config/glance/
+    - cp /etc/ceph/ceph.client.glance.keyring /etc/kolla/config/glance/
     - cp /etc/ceph/ceph.client.nova.keyring /etc/kolla/config/nova/
     - cp /etc/ceph/ceph.client.cinder.keyring /etc/kolla/config/nova/
     - cp /etc/ceph/ceph.client.cinder.keyring /etc/kolla/config/cinder/cinder-volume/
@@ -138,15 +135,15 @@
     - cp /etc/ceph/ceph.client.cinder-backup.keyring /etc/kolla/config/cinder/cinder-backup/
 
 - name: bootstrap servers with kolla deploy dependencies
-  shell: kolla-ansible -i ./multinode bootstrap-servers
+  shell: . /path/to/venv/bin/activate && kolla-ansible -i ./multinode bootstrap-servers
   become: true
 
 - name: pre-deployment checks
-  shell: kolla-ansible -i ./multinode prechecks
+  shell: . /path/to/venv/bin/activate && kolla-ansible -i ./multinode prechecks
   become: true
 
 - name: actual deploy step
-  shell: kolla-ansible -i ./multinode deploy
+  shell: . /path/to/venv/bin/activate && kolla-ansible -i ./multinode deploy
   become: true
 
 
